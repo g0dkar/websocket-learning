@@ -1,0 +1,110 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Teste do Socket.io</title>
+<script src="http://localhost/socket.io/socket.io.js"></script>
+<script>
+	window.onload = function () {
+		var console = document.getElementById("console");
+		var comando = document.getElementById("comando");
+		var dados = document.getElementById("dados");
+		var formComando = document.getElementById("form-comando");
+		var socket = io.connect("http://localhost");
+		
+		function log() {
+			var texto = "";
+			for (var i in arguments) { texto = texto + arguments[i]; }
+			console.innerHTML = console.innerHTML + texto + "\n";
+			if (document.body) { document.body.scrollTop = document.body.offsetTop; }
+		};
+		
+		formComando.onsubmit = function () {
+			log(">> Comando: ", comando.value, "     (dados: ", dados.value, ")");
+			socket.emit(comando.value, dados.value);
+			return false;
+		};
+		
+		// Primeira mensagem enviada pelo servidor (assim que a conexão é feita)
+		socket.on("hello", function (data) {
+			log("[Servidor - HELLO]: ", data);
+		});
+		
+		// Mensagens que serão enviadas pelo servidor (um eco das nossas)
+		socket.on("mensagem do usuario", function (data) {
+			log("[Servidor - MENSAGEM DO USUARIO]: ", data);
+		});
+	};
+</script>
+<style type="text/css">
+body {
+	padding-top: 115px;
+	background: #333;
+}
+body, .label, .text {
+	font-family: Tahoma, Geneva, sans-serif;
+}
+.console {
+	margin: 0;
+	color: #0c0;
+	padding: 10px;
+}
+.form {
+	background: #f5f6f8;
+	padding: 5px 0;
+	margin: 0;
+	width: 100%;
+	height: 105px;
+	border-bottom: 1px solid #dbdbdd;
+	position: fixed;
+	top: 0;
+	left: 0;
+}
+.label {
+	display: block;
+	float: left;
+	width: 150px;
+	text-align: right;
+	margin-top: 8px;
+}
+.form-field {
+	margin: 5px 0 0 160px;
+}
+.text {
+	width: 300px;
+	height: 18px;
+	padding: 3px 5px;
+	border: 1px solid #ccc;
+	border-top-color: #999;
+	border-radius: 2px;
+}
+.btn {
+	margin: 0;
+	padding: 0;
+	width: 80px;
+	height: 35px;
+	background: #cee4fc;
+	border: 1px solid #5799d6;
+}
+</style>
+</head>
+
+<body>
+<pre class="console" id="console"></pre>
+<form id="form-comando" class="form">
+	<label class="label" for="comando">Comando:</label>
+	<div class="form-field">
+		<input type="text" class="text" id="comando" value="mensagem do usuario" />
+	</div>
+	
+	<label class="label" for="dados">Dados:</label>
+	<div class="form-field">
+		<input type="text" class="text" id="dados" placeholder="Dados para enviar ao servidor" autofocus />
+	</div>
+	
+	<div class="form-field">
+		<input type="submit" class="btn" value="Enviar" />
+	</div>
+</form>
+</body>
+</html>
