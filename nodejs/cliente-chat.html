@@ -55,7 +55,7 @@
 		
 		// Quando alguém fala algo no chat
 		socket.on("falando", function (data) {
-			adicionarLinha("chat", "<strong>&lt;" + data.cliente + "&gt;</strong> " + data.texto);
+			adicionarLinha("chat" + (data.cliente == socket.nome ? " eu" : ""), "<strong>&lt;" + data.cliente + "&gt;</strong> " + data.texto);
 		});
 		
 		// Quando alguém manda uma mensagem privada
@@ -81,6 +81,11 @@
 			var inputTextoChat = $("#texto-chat").val();
 			socket.emit("falar", { texto: inputTextoChat });
 			$("#texto-chat").val("").focus();
+		});
+		
+		$("#usuarios").live("click", function (event) {
+			event.preventDefault();
+			$(this).toggleClass(".selecionado").siblings("li").removeClass("selecionado");
 		});
 	});
 })(jQuery);
@@ -221,6 +226,10 @@ h2 {
 	padding: 5px 10px;
 	border-bottom: 1px solid #ddd;
 }
+#usuarios li.selecionado {
+	background: #cee4fc;
+	border-color: #5799d6;
+}
 #form-falar {
 	position: fixed;
 	right: 180px;
@@ -268,6 +277,9 @@ h2 {
 }
 .linha.saiu {
 	color: #c00;
+}
+.linha.eu {
+	color: #000;
 }
 </style>
 </head>
