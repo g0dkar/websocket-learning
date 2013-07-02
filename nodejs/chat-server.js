@@ -14,8 +14,6 @@ var io = require("socket.io").listen(80);
 // Utilizaremos isso para poder mandar mensagens privadas de um cliente a outro.
 var USUARIOS_CONECTADOS = { };
 
-
-
 // Um cliente abriu uma conexão! Vamos prepará-la!
 io.sockets.on("connection", function (socket) {
 	// Vamos configurar os comandos que podemos receber do cliente:
@@ -30,7 +28,7 @@ io.sockets.on("connection", function (socket) {
 				socket.part(socket.sala);
 				
 				// E avisar na sala antiga que este cliente saiu de lá
-				io.sockets.in(socket.sala).emit("partiu", { cliente: socket.nomeCliente, motivo: "Foi para outra sala" });
+				io.sockets.in(socket.sala).emit("partiu", { cliente: socket.nomeCliente, motivo: "Foi para outra sala", usuarios: getListaUsuarios(socket.sala) });
 			}
 			
 			// Guardamos a informação de que sala este socket está para facilitar futuramente
@@ -56,7 +54,7 @@ io.sockets.on("connection", function (socket) {
 			USUARIOS_CONECTADOS[socket.nomeCliente] = socket;
 			
 			// Agora que todo o procedimento foi concluído, avisamos a todos que há alguém novo na sala
-			io.sockets.in(socket.sala).emit("entrou", { cliente: socket.nomeCliente });
+			io.sockets.in(socket.sala).emit("entrou", { cliente: socket.nomeCliente, usuarios: getListaUsuarios(socket.sala) });
 		}
 		// Se não disse que sala ele quer entrar, mandamos um erro.
 		else {
@@ -64,7 +62,7 @@ io.sockets.on("connection", function (socket) {
 		}
 	});
 	
-	
+	/* ******************* */
 	
 	// Comando "sair" - O cliente simplesmente saiu da sala de chat onde ele se encontra
 	socket.on("sair", function (data) {
@@ -77,7 +75,7 @@ io.sockets.on("connection", function (socket) {
 			socket.sala = null;
 			
 			// E avisar que este cliente saiu de sua sala antiga
-			io.sockets.in(socket.sala).emit("partiu", { cliente: socket.nomeCliente, motivo: data.motivo ? limparTexto(data.motivo) : "Saiu da sala" });
+			io.sockets.in(socket.sala).emit("partiu", { cliente: socket.nomeCliente, motivo: data.motivo ? limparTexto(data.motivo) : "Saiu da sala", usuarios: getListaUsuarios(socket.sala) });
 		}
 		// Se não está em uma sala, mandamos um erro
 		else {
@@ -85,7 +83,7 @@ io.sockets.on("connection", function (socket) {
 		}
 	});
 	
-	
+	/* ******************* */
 	
 	// Comando "falar" - O cliente vai falar algo para todos na sala de chat onde ele está
 	socket.on("falar", function (data) {
@@ -100,7 +98,7 @@ io.sockets.on("connection", function (socket) {
 		}
 	});
 	
-	
+	/* ******************* */
 	
 	// Comando "falarPrivado" - O cliente vai falar algo para todos na sala de chat onde ele está
 	socket.on("falarPrivado", function (data) {
@@ -109,7 +107,7 @@ io.sockets.on("connection", function (socket) {
 			// Este nome existe?
 			if (USUARIOS_CONECTADOS[data.nome]) {
 				// Vamos mandar uma mensagem a ele então:
-				USUARIOS_CONECTADOS[data.nome].emit("falandoPrivado", { cliente: socket.nomeCliente, texto: limparTexto(data.texto); });
+				USUARIOS_CONECTADOS[data.nome].emit("falandoPrivado", { cliente: socket.nomeCliente, texto: limparTexto(data.texto) });
 			}
 			// Não existe, então mandamos um erro
 			else {
@@ -122,7 +120,20 @@ io.sockets.on("connection", function (socket) {
 		}
 	});
 	
+	/* ******************* */
 	
+	// Quando um cliente desconectar
+	socket.on("disconnect", function () {
+		// Removemos este socket da lista de usuários conectados
+		delete(USUARIOS_CONECTADOS[socket.nomeCliente]);
+		
+		if (socket.sala) {
+			// E avisar na sala antiga que este cliente saiu de lá
+			io.sockets.in(socket.sala).emit("partiu", { cliente: socket.nomeCliente, motivo: "Desconectou", usuarios: getListaUsuarios(socket.sala) });
+		}
+	});
+	
+	/* ******************* */
 	
 	// Agora que inicializamos tudo vamos emitir uma mensagem ao cliente avisando que está tudo ok
 	socket.emit("ok");
@@ -136,4 +147,19 @@ io.sockets.on("connection", function (socket) {
  */
 function limparTexto(texto) {
 	return texto.replace(/<[^>]*>|^\s+|\s+$/g, "");
+}
+
+/**
+ * Monta e envia a lista de usuários de um canal. Evite usar isso, hehe.
+ *
+ * @return Array com os nomes dos clientes na sala específica
+ */
+function getListaUsuarios(sala) {
+	var usuarios = [];
+	
+	for (var user in USUARIOS_CONECTADOS) {
+		if (USUARIOS_CONECTADOS[user].sala == sala) { usuarios.push(USUARIOS_CONECTADOS[user].nomeCliente); }
+	}
+	
+	return usuarios;
 }

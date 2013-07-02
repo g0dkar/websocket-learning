@@ -1,0 +1,315 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Chat Websockets - by g0dkar - Rafael Madureira Lins</title>
+<script src="http://localhost/socket.io/socket.io.js"></script>
+<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script type="application/javascript">
+(function ($) {
+	function montarListaUsuarios(usuarios) {
+		var lista = $("#usuarios");
+		var itens = "";
+		for (var i in usuarios) {
+			itens = itens + "<li id=\"usuario_" + usuarios[i] + "\">" + usuarios[i] + "</li>";
+		}
+		lista.empty().html(itens);
+	}
+	
+	function adicionarLinha(tipo, texto) {
+		$("#chat").append("<div class=\"linha " + tipo + "\">" + texto + "</div>");
+	}
+	
+	$(function () {
+		// Inicializa conexão com o servidor
+		var socket = io.connect("http://localhost");
+		var iniciado = false;
+		
+		// Primeira mensagem enviada pelo servidor (assim que a conexão é feita)
+		socket.on("ok", function (data) {
+			if (!iniciado) {
+				iniciado = true;
+				$("#carregando").fadeOut();
+				$("#informacoes-cliente").fadeIn();
+			}
+		});
+		
+		// Quando o servidor avisar que alguém entrou em um canal
+		socket.on("entrou", function (data) {
+			if (data.cliente == socket.nome) {
+				$("#modal").fadeOut("fast");
+				adicionarLinha("especial entrou", "<strong>Você</strong> entrou no canal.");
+			}
+			else {
+				adicionarLinha("especial entrou", "<strong>" + data.cliente + "</strong> entrou no canal.");
+			}
+			
+			montarListaUsuarios(data.usuarios);
+		});
+		
+		// Quando o servidor avisar que alguém entrou em um canal
+		socket.on("partiu", function (data) {
+			adicionarLinha("especial saiu", "<strong>" + data.cliente + "</strong> saiu do canal. Motivo: <em>" + data.motivo + "</em>");
+			montarListaUsuarios(data.usuarios);
+		});
+		
+		// Quando alguém fala algo no chat
+		socket.on("falando", function (data) {
+			adicionarLinha("chat", "<strong>&lt;" + data.cliente + "&gt;</strong> " + data.texto);
+		});
+		
+		// Quando alguém manda uma mensagem privada
+		socket.on("falandoPrivado", function (data) {
+			adicionarLinha("chat private", "<strong>&lt;" + data.cliente + "&gt;</strong> <em>[privado]</em> " + data.texto);
+		});
+		
+		$("#form-informacoes").submit(function (event) {
+			event.preventDefault();
+			var inputNome = $("#nome").val();
+			var inputCanal = $("#canal").val();
+			
+			socket.nome = inputNome;
+			socket.canal = inputCanal;
+			
+			$("#nome-canal").text(socket.canal);
+			
+			socket.emit("entrar", { nome: inputNome, sala: inputCanal });
+		});
+		
+		$("#form-falar").submit(function (event) {
+			event.preventDefault();
+			var inputTextoChat = $("#texto-chat").val();
+			socket.emit("falar", { texto: inputTextoChat });
+			$("#texto-chat").val("").focus();
+		});
+	});
+})(jQuery);
+	/*
+	window.onload = function () {
+		var console = document.getElementById("console");
+		var comando = document.getElementById("comando");
+		var dados = document.getElementById("dados");
+		var formComando = document.getElementById("form-comando");
+		var socket = io.connect("http://localhost");
+		
+		function log() {
+			var texto = "";
+			for (var i in arguments) { texto = texto + arguments[i]; }
+			console.innerHTML = console.innerHTML + texto + "\n";
+			if (document.body) { document.body.scrollTop = document.body.offsetTop; }
+		};
+		
+		formComando.onsubmit = function () {
+			log(">> Comando: ", comando.value, "     (dados: ", dados.value, ")");
+			socket.emit(comando.value, dados.value);
+			return false;
+		};
+		
+		// Primeira mensagem enviada pelo servidor (assim que a conexão é feita)
+		socket.on("hello", function (data) {
+			log("[Servidor - HELLO]: ", data);
+		});
+		
+		// Mensagens que serão enviadas pelo servidor (um eco das nossas)
+		socket.on("mensagem do usuario", function (data) {
+			log("[Servidor - MENSAGEM DO USUARIO]: ", data);
+		});
+	};
+	*/
+</script>
+<style type="text/css">
+body {
+	background: #fff;
+}
+body, .label, .text {
+	font-family: Tahoma, Geneva, sans-serif;
+}
+#modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 100;
+	background: rgba(0,0,0,.5);
+}
+#msg-carregando, #informacoes-cliente {
+	background: #fff;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	border: 1px solid #666;
+	border-radius: 5px;
+	box-shadow: 0 0 10px rgba(0,0,0,.5);
+	z-index: 110;
+}
+#msg-carregando {
+	font-size: 24px;
+	text-align: center;
+	width: 350px;
+	height: 100px;
+	line-height: 100px;
+	margin: -50px 0 0 -175px;
+}
+#informacoes-cliente {
+	width: 380px;
+	margin: -100px 0 0 -190px;
+	height: 200px;
+	display: none;
+}
+h2 {
+	text-align: center;
+	background: #f5f5f5;
+	border-radius: 5px 5px 0 0;
+	margin: 0 0 15px 0;
+	padding: 15px 0;
+	font-weight: normal;
+	border-bottom: 1px solid #ddd;
+}
+.label {
+	display: block;
+	float: left;
+	width: 100px;
+	text-align: right;
+	margin-top: 4px;
+	clear: both;
+}
+.form-field {
+	margin: 5px 0 0 110px;
+}
+.text {
+	width: 200px;
+	height: 18px;
+	padding: 3px 5px;
+	border: 1px solid #ccc;
+	border-top-color: #999;
+	border-radius: 2px;
+}
+.btn {
+	margin: 0;
+	padding: 0;
+	width: 80px;
+	height: 35px;
+	background: #cee4fc;
+	border: 1px solid #5799d6;
+}
+#chat {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 180px;
+	bottom: 50px;
+	margin: 0;
+	padding: 10px;
+	box-shadow: 0 0 20px rgba(0,0,0,.1) inset;
+	z-index: 1;
+}
+#usuarios {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 179px;
+	border-left: 1px solid #ddd;
+	background: #f5f5f5;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+#usuarios li {
+	background: #fafafa;
+	padding: 5px 10px;
+	border-bottom: 1px solid #ddd;
+}
+#form-falar {
+	position: fixed;
+	right: 180px;
+	bottom: 0;
+	left: 0;
+	padding: 0;
+	margin: 0;
+	border-top: 1px solid #ddd;
+	height: 49px;
+}
+#texto-chat {
+	border: none;
+	color: #000;
+	height: 49px;
+	width: 99%;
+	font-size: 26px;
+	padding-left: 1%;
+}
+#btn-chat {
+	position: absolute;
+	top: 5px;
+	right: 5px;
+	z-index: 1;
+	width: 80px;
+	height: 39px;
+}
+#nome-canal {
+	position: fixed;
+	top: 0;
+	right: 180px;
+	margin: 0;
+	padding: 20px 30px;
+	color: #bbb;
+}
+.linha {
+	color: #666;
+}
+.linha.especial {
+	padding: 5px 0;
+	margin: 5px 0;
+	font-size: 12px;
+}
+.linha.entrou {
+	color: #0c0;
+}
+.linha.saiu {
+	color: #c00;
+}
+</style>
+</head>
+
+<body>
+<div id="modal">
+	<div id="msg-carregando">Conectando ao servidor...</div>
+	
+	<div id="informacoes-cliente">
+		<h2>Chat Websocket by <a href="http://rafaelmadureiralins.com.br/" title="Rafael Madureira Lins - g0dkar">g0dkar</a></h2>
+		<div class="informacoes-cliente">
+			<form id="form-informacoes">
+				<label class="label" for="nome">Nome:</label>
+				<div class="form-field">
+					<input type="text" class="text" id="nome" placeholder="Seu nome de Usuário (opcional)" autofocus />
+				</div>
+				<label class="label" for="canal" style="margin-top:8px">Canal:</label>
+				<div class="form-field">
+					<input type="text" class="text" id="canal" value="Canal01" placeholder="Canal (nome único)" required />
+				</div>
+				<div class="form-field">
+					<button type="submit" class="btn">Entrar</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<div id="chat-ui">
+	<h1 id="nome-canal">Esperando você entrar em um canal ;)</h1>
+	
+	<div id="chat"></div>
+	
+	<ul id="usuarios">
+		<li>Aguardando...</li>
+	</ul>
+	
+	<form id="form-falar">
+		<input type="text" id="texto-chat" />
+		<button type="submit" id="btn-chat">Enviar</button>
+	</form>
+</div>
+
+</body>
+</html>
