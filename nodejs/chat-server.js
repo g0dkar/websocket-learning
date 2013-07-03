@@ -41,9 +41,13 @@ io.sockets.on("connection", function (socket) {
 			// Removemos temporariamente este socket da lista de usuários conectados
 			delete(USUARIOS_CONECTADOS[socket.nomeCliente]);
 			
-			// Se ele mandou o nome, configuramos o nome dele:
-			if (data.nome) {
-				socket.nomeCliente = limparTexto(data.nome);
+			// Configuramos o nome dele:
+			// Limpamos o nome
+			data.nome = limparTexto(data.nome);
+			
+			// Se ele não for composto apenas de espaços, utilizamos ele
+			if (/\S+/.test(data.nome)) {
+				socket.nomeCliente = data.nome;
 			}
 			// Caso contrário, damos um nome aleatório
 			else {
@@ -146,7 +150,7 @@ io.sockets.on("connection", function (socket) {
  * @return Texto sem tags HTML/XML
  */
 function limparTexto(texto) {
-	return texto.replace(/<[^>]*>|^\s+|\s+$/g, "");
+	return texto ? texto.replace(/<[^>]*>|^\s+|\s+$/g, "") : null;
 }
 
 /**

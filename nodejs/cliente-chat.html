@@ -79,13 +79,23 @@
 		$("#form-falar").submit(function (event) {
 			event.preventDefault();
 			var inputTextoChat = $("#texto-chat").val();
-			socket.emit("falar", { texto: inputTextoChat });
+			var usuarioChatPrivado = $("#usuarios .selecionado").text();
+			
+			if (usuarioChatPrivado) {
+				socket.emit("falarPrivado", { nome: usuarioChatPrivado, texto: inputTextoChat });
+				adicionarLinha("chat private", "<strong>&lt;" + socket.nome + "&gt;</strong> <em>[privado para " + usuarioChatPrivado + "]</em> " + inputTextoChat);
+			}
+			else {
+				socket.emit("falar", { texto: inputTextoChat });
+			}
+			
 			$("#texto-chat").val("").focus();
 		});
 		
-		$("#usuarios").live("click", function (event) {
+		$("#usuarios").on("click", "li", function (event) {
 			event.preventDefault();
-			$(this).toggleClass(".selecionado").siblings("li").removeClass("selecionado");
+			$(this).toggleClass("selecionado").siblings("li").removeClass("selecionado");
+			$("#aviso-msg-privada").stop()[$(this).is(".selecionado") ? "fadeIn" : "fadeOut"]("fast");
 		});
 	});
 })(jQuery);
@@ -225,6 +235,7 @@ h2 {
 	background: #fafafa;
 	padding: 5px 10px;
 	border-bottom: 1px solid #ddd;
+	cursor: pointer;
 }
 #usuarios li.selecionado {
 	background: #cee4fc;
@@ -256,13 +267,21 @@ h2 {
 	width: 80px;
 	height: 39px;
 }
-#nome-canal {
+#nome-canal, #aviso-msg-privada {
 	position: fixed;
 	top: 0;
 	right: 180px;
 	margin: 0;
 	padding: 20px 30px;
 	color: #bbb;
+}
+#aviso-msg-privada {
+	color: #ffae00;
+	top: auto;
+	bottom: 50px;
+	padding: 5px 10px;
+	font-size: 24px;
+	display: none;
 }
 .linha {
 	color: #666;
@@ -310,6 +329,7 @@ h2 {
 
 <div id="chat-ui">
 	<h1 id="nome-canal">Esperando você entrar em um canal ;)</h1>
+	<h1 id="aviso-msg-privada">Você agora está enviando mensagens apenas para o usuário selecionado</h1>
 	
 	<div id="chat"></div>
 	
