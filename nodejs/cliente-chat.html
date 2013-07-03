@@ -27,10 +27,24 @@
 		
 		// Primeira mensagem enviada pelo servidor (assim que a conexão é feita)
 		socket.on("ok", function (data) {
+			// 1a vez que recebemos OK?
 			if (!iniciado) {
 				iniciado = true;
 				$("#carregando").fadeOut();
 				$("#informacoes-cliente").fadeIn();
+			}
+			// Se não for, isso significa que por algum motivo caímos e voltamos ao servidor!
+			else {
+				// Já haviamos entrado em um canal? Se sim, voltamos a ele.
+				if (socket.canal) {
+					socket.emit("entrar", { nome: socket.nome, sala: socket.canal });
+				}
+				// Se não, mostramos a tela para digitar o canal novamente
+				else {
+					$("#modal").show();
+					$("#carregando").fadeOut();
+					$("#informacoes-cliente").fadeIn();
+				}
 			}
 		});
 		
